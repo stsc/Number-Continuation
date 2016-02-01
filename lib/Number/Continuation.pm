@@ -3,145 +3,197 @@ package Number::Continuation;
 use strict;
 use warnings;
 use base qw(Exporter);
+use boolean qw(true);
 
 use Carp qw(croak);
-use Scalar::Util qw(refaddr);
+use Params::Validate ':all';
 
 our ($VERSION, @EXPORT_OK);
 
-$VERSION = '0.04';
+$VERSION = '0.04_01';
 @EXPORT_OK = qw(continuation);
+
+validation_options(
+    on_fail => sub
+{
+    my ($error) = @_;
+    chomp $error;
+    croak $error;
+},
+    stack_skip => 2,
+);
 
 sub continuation
 {
-    my $opts = pop if ref $_[-1] eq 'HASH';
+    my (@list, %opts, $set);
 
-    my $input = ref $_[0] eq 'ARRAY'
-      ? join ' ', @{$_[0]}
-      : @_ > 1
-        ? join ' ', @_
-        : !refaddr $_[0]
-          ? $_[0]
-          : croak 'continuation($set | @set | \@set [, { options } ])';
+    _init(\$set, \%opts, \@_);
 
-    _validate($input);
+    if (wantarray) {
+        _construct($set, \@list);
+        return @list;
+    }
+    else {
+        return _format($set, \%opts);
+    }
+}
 
-    my $wantarray = wantarray;
+sub _init
+{
+    my ($set, $opts, $args) = @_;
+
+    if (ref $args->[-1] eq 'HASH') {
+        %$opts = %{$args->[-1]};
+        pop @$args;
+    }
+
+    my $re_digits = qr!^\-?\d+$!;
+
+    my $spec = sub
+    {
+        my ($args, $spec) = @_;
+        my @spec;
+        push @spec, $spec while $args--;
+        return @spec;
+    };
+
+    if (@$args == 1) {
+        validate_pos(@$args, {
+            type => SCALAR | ARRAYREF,
+            callbacks => {
+                'valid set' => sub
+                {
+                    foreach my $num (ref $_[0] ? @{$_[0]} : (split /\s+/, $_[0])) {
+                        die "invalid number\n" unless $num =~ $re_digits;
+                    }
+                    $$set = ref $_[0] ? $_[0] : [ split /\s+/, $_[0] ];
+                    return true;
+                }
+            },
+        });
+    }
+    elsif (@$args > 1) {
+        my %spec = (
+            type  => SCALAR,
+            regex => $re_digits,
+        );
+        validate_pos(@$args, $spec->(scalar @$args, \%spec));
+        $$set = $args;
+    }
+    else {
+        $$set = [];
+    }
+
+    my @args = %$opts;
+    validate(@args, {
+        delimiter => {
+            type => SCALAR,
+            optional => true,
+            regex => qr!^\S{2}$!,
+        },
+        range => {
+            type => SCALAR,
+            optional => true,
+            regex => qr!^\S{1,2}$!,
+        },
+        separator => {
+            type => SCALAR,
+            optional => true,
+            regex => qr!^\S$!,
+        },
+    });
 
     $opts->{delimiter} ||= '';
     $opts->{range}     ||= '-';
     $opts->{separator} ||= ',';
 
     @{$opts->{delimiters}} = split //, $opts->{delimiter};
-
-    my @nums = split /\s+/, $input;
-
-    my (%constructed, $have_neg_continuation, @lists, $output, @output);
-
-    my $reset = 1;
-
-    for (my $i = 0; $i < @nums; $i++) {
-        # handy variables
-        my $prev_number    = $nums[$i-1] || 0;
-        my $current_number = $nums[$i  ] || 0;
-        my $next_number    = $nums[$i+1] || 0;
-
-        # set if preceeded by continuation
-        my $prev_continuation = 1 if $constructed{begin}
-                                  && $constructed{middle}
-                                  && $constructed{end};
-
-        # set if negative continuation sensed (i.e. 3 2 1)
-        $have_neg_continuation = 1 if ($prev_number - $next_number == 2);
-
-        # previous number greater than current one
-        if ($prev_number > $current_number && $i != 0 && !$have_neg_continuation) {
-            # previous number *exactly* greater 1
-            if ($prev_number - $current_number == 1) {
-                if ($wantarray) {
-                    if (@lists) {
-                        push @output, [ @lists ];
-                        undef @lists;
-                    }
-                } else {
-                    $output .= "$opts->{separator} ";
-                }
-            # previous number greater than 1 and no previous continuation
-            } else {
-                if ($wantarray) {
-                    if (@lists) {
-                        push @output, [ @lists ];
-                        undef @lists;
-                    }
-                } else {
-                    $output .= "$opts->{separator} " unless $prev_continuation;
-                }
-            }
-            # reset processing continuation state
-            $reset = 1;
-        }
-        # processing new continuation
-        if ($reset) {
-            if ($wantarray) {
-                push @lists, $nums[$i];
-                push @output, [ @lists ] if $i == $#nums;
-            } else {
-                $output .= $opts->{delimiters}->[0] if $opts->{delimiters}->[0];
-                $output .= $nums[$i];
-            }
-            if (($next_number - $current_number) > 1) {
-                if ($wantarray) {
-                    if (@lists) {
-                        push @output, [ @lists ];
-                        undef @lists;
-                    }
-                } else {
-                    $output .= "$opts->{separator} ";
-                }
-                next;
-            }
-            ($have_neg_continuation, $reset) = (0,0);
-            undef %constructed;
-
-            $constructed{begin} = 1;
-        # process numbers in between (skipping if scalar context)
-        } elsif (defined($next_number) && (($next_number - $current_number) == 1
-                                       ||  ($current_number - $next_number) == 1)) {
-            if ($wantarray) {
-                push @lists, $current_number;
-            } else { # blissfully do nothing when scalar context
-            }
-            $constructed{middle} = 1;
-        # end processing current continuation
-        } else {
-            if ($wantarray) {
-                push @lists, $current_number;
-                push @output, [ @lists ];
-                undef @lists;
-            } else {
-                $output .= $opts->{range}.$current_number;
-                $output .= $opts->{delimiters}->[-1] if $opts->{delimiters}->[-1];
-                $output .= "$opts->{separator} "     unless $i == $#nums;
-            }
-            $reset = 1;
-            $constructed{end} = 1;
-        }
-    }
-
-    return wantarray ? @output : $output;
+    $opts->{delimiters}[0] ||= '';
+    $opts->{delimiters}[1] ||= '';
 }
 
-sub _validate
+sub _construct
 {
-    my ($set) = @_;
+    my ($set, $list) = @_;
 
-    croak 'continuation(): empty set provided' unless defined $set;
+    my $prev_number = undef;
 
-    my $RE_valid = qr{(?:[\d\-]+\ ?)+};
-    1 while $set =~ /\G$RE_valid/gc;
-    unless ($set =~ /\G$/) {
-        croak "continuation(): invalid set provided: '$set`";
+    my $entry = [];
+    foreach my $num (@$set) {
+        if (defined $prev_number
+        && !(($num - $prev_number == 1) # positive continuation
+          || ($prev_number - $num == 1) # negative continuation
+        )) {
+            push @$list, $entry;
+            $entry = [];
+        }
+        push @$entry, $num;
+        $prev_number = $num;
     }
+    push @$list, $entry if @$entry;
+}
+
+sub _format
+{
+    my ($set, $opts) = @_;
+
+    my $string = '';
+
+    my $begin = sub
+    {
+        my ($string, $num) = @_;
+        $$string .= $opts->{delimiters}[0];
+        $$string .= $num;
+    };
+    my $range = sub
+    {
+        my ($string, $num) = @_;
+        $$string .= $opts->{range};
+        $$string .= $num;
+    };
+    my $end = sub
+    {
+        my ($string) = @_;
+        $$string .= $opts->{delimiters}[1];
+        $$string .= "$opts->{separator} ";
+    };
+
+    my $consecutive = 0;
+    my $prev_number = undef;
+
+    foreach my $num (@$set) {
+        if (!defined $prev_number) {
+            $begin->(\$string, $num);
+        }
+        else {
+            if (($num - $prev_number == 1) # positive continuation
+             || ($prev_number - $num == 1) # negative continuation
+            ) {
+                $consecutive++;
+            }
+            elsif ($consecutive) {
+                $range->(\$string, $prev_number);
+                $end->(\$string);
+                $begin->(\$string, $num);
+                $consecutive = 0;
+            }
+            else {
+                $end->(\$string);
+                $begin->(\$string, $num);
+            }
+        }
+        $prev_number = $num;
+    }
+    if ($consecutive) {
+        $range->(\$string, $prev_number);
+    }
+    if (@$set) {
+        $end->(\$string);
+    }
+
+    $string =~ s/\Q$opts->{separator}\E $//;
+
+    return $string;
 }
 
 1;
@@ -182,17 +234,17 @@ Number::Continuation - Create number continuations
  continuation($set | @set | \@set [, { options } ])
 
 Returns in scalar context a stringified representation of a number continuation.
-In list context a two-dimensional array is returned where each member represents
-a list of numbers that belong to a single continuation or which are not member
-of a continuation at all.
+In list context a two-dimensional array is returned where each entry represents
+a list of numbers that belong to a single continuation or which does not belong
+to a continuation at all.
 
 Continuation ranges may be negative.
 
 It takes optionally a hash reference as last argument containing the parameters
-C<delimiter>,C<range> and C<separator>. C<delimiter> may contain two characters,
-where first one is appended to the beginning of a continuation and the second one
-to the end; C<range> may consist of a single character which is being inserted
-between the beginning and end of a continuation; C<separator> may be set
+C<delimiter>, C<range> and C<separator>. C<delimiter> may contain two characters,
+where first one is prepended to the beginning of a continuation and the second one
+appended to the end; C<range> may consist of one or two characters which are being
+inserted between the beginning and end of a continuation; C<separator> may be set
 to a single character which ends a continuation.
 
 C<delimiter>, C<range> and C<separator> aren't mandatory parameters. If options

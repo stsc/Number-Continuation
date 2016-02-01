@@ -9,20 +9,17 @@ my $build = Module::Build->new
   (
    module_name => 'Number::Continuation',
    dist_author => 'Steven Schubiger <schubiger@cpan.org>',
-   dist_version_from => 'lib/Number/Continuation.pm',      
+   dist_version_from => 'lib/Number/Continuation.pm',
    requires => {
+                 'boolean' => 0,
                  'Carp' => 0,
                  'Exporter' => 0,
-		 'Scalar::Util' => 0,
+                 'Params::Validate' => 0,
                },
    build_requires => { 'Test::More' => 0 },
-   recommends => {
-                   'Test::Pod' => '1.14',
-		   'Test::Pod::Coverage' => '1.04',
-		 },
    license => 'perl',
    create_readme => 1,
    create_makefile_pl => 'traditional',
   );
-  
+
 $build->create_build_script;

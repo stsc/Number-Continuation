@@ -1,5 +1,19 @@
 Revision history for Perl extension Number::Continuation.
 
+0.04_01  2016-01-28  <schubiger@cpan.org>
+
+ - Major code refactoring.
+
+ - Amend documentation slightly.
+
+ - Validation of arguments is now handled by Params::Validate.
+
+ - Use the "boolean" pragma for true/false values.
+
+ - Do no longer recommend Test::Pod and Test::Pod::Coverage.
+
+ - Adjust indentation and omit diagnostic for test file.
+
 0.04 Sun Mar  2 16:26:32 CET 2008
 
  - Added validation routine for input.
