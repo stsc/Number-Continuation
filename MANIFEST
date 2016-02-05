@@ -9,6 +9,7 @@ META.yml
 README
 scripts/contin.pl
 t/00-load.t
+t/continuation.t
 t/list.t
 t/pod-coverage.t
 t/pod.t
