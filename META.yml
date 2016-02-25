@@ -16,7 +16,7 @@ name: Number-Continuation
 provides:
   Number::Continuation:
     file: lib/Number/Continuation.pm
-    version: 0.04_02
+    version: 0.04_03
 requires:
   Carp: '0'
   Exporter: '0'
@@ -24,4 +24,4 @@ requires:
   boolean: '0'
 resources:
   license: http://dev.perl.org/licenses/
-version: 0.04_02
+version: 0.04_03

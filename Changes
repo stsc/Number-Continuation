@@ -1,5 +1,9 @@
 Revision history for Perl extension Number::Continuation.
 
+0.04_03  2016-02-25  <schubiger@cpan.org>
+
+ - Skip documentation tests for non-release testing.
+
 0.04_02  2016-02-05  <schubiger@cpan.org>
 
  - Test calling conventions of continuation().
