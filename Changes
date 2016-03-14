@@ -1,5 +1,11 @@
 Revision history for Perl extension Number::Continuation.
 
+0.04_04  2016-03-14  <schubiger@cpan.org>
+
+ - Add metadata repository link.
+
+ - Update license link.
+
 0.04_03  2016-02-25  <schubiger@cpan.org>
 
  - Skip documentation tests for non-release testing.

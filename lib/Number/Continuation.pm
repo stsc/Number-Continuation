@@ -10,7 +10,7 @@ use Params::Validate ':all';
 
 our ($VERSION, @EXPORT_OK);
 
-$VERSION = '0.04_03';
+$VERSION = '0.04_04';
 @EXPORT_OK = qw(continuation);
 
 validation_options(
@@ -263,6 +263,6 @@ Steven Schubiger <schubiger@cpan.org>
 This program is free software; you may redistribute it and/or
 modify it under the same terms as Perl itself.
 
-See L<http://www.perl.com/perl/misc/Artistic.html>
+See L<http://dev.perl.org/licenses/>
 
 =cut

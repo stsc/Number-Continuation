@@ -36,14 +36,17 @@
    "provides" : {
       "Number::Continuation" : {
          "file" : "lib/Number/Continuation.pm",
-         "version" : "0.04_03"
+         "version" : "0.04_04"
       }
    },
    "release_status" : "testing",
    "resources" : {
       "license" : [
          "http://dev.perl.org/licenses/"
-      ]
+      ],
+      "repository" : {
+         "url" : "https://github.com/stsc/Number-Continuation"
+      }
    },
-   "version" : "0.04_03"
+   "version" : "0.04_04"
 }
