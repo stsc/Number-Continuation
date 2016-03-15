@@ -16,7 +16,7 @@ name: Number-Continuation
 provides:
   Number::Continuation:
     file: lib/Number/Continuation.pm
-    version: 0.04_04
+    version: '0.05'
 requires:
   Carp: '0'
   Exporter: '0'
@@ -25,4 +25,4 @@ requires:
 resources:
   license: http://dev.perl.org/licenses/
   repository: https://github.com/stsc/Number-Continuation
-version: 0.04_04
+version: '0.05'
